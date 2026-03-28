@@ -1,22 +1,38 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LUNA — Belleza Lunar</title> 
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,600&family=Cinzel:wght@400;500;600;700&family=Raleway:wght@300;400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>LUNA — Belleza Lunar</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<div id="cur-o"></div>
-<div id="cur-i"></div>
+<!-- Custom cursor (desktop only, injected by JS) -->
+
 <canvas id="pc"></canvas>
 <div class="grain"></div>
 
-<!-- NAV -->
+<svg class="background-arc" viewBox="0 0 1400 700" fill="none" preserveAspectRatio="none">
+  <defs>
+    <linearGradient id="ag" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#c8a84b" stop-opacity="0"/>
+      <stop offset="40%" stop-color="#c8a84b" stop-opacity="0.6"/>
+      <stop offset="60%" stop-color="#f0d070" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#c8a84b" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="gf"><feGaussianBlur stdDeviation="2.5"/></filter>
+  </defs>
+  <path d="M-50 600 Q360 -80 830 230 Q1060 340 1460 28" stroke="url(#ag)" stroke-width="1" filter="url(#gf)"/>
+  <path d="M-50 200 Q450 650 900 350 Q1250 100 1460 550" stroke="url(#ag)" stroke-width=".8" filter="url(#gf)" opacity="0.4"/>
+</svg>
+
+<!-- NAVIGATION -->
 <nav id="mn">
-  <a href="#inicio" class="nav-logo"><img src="Img/logo.png" alt="LUNA"></a>
+  <a href="#" class="nav-logo"><img src="img/logo.png" alt="LUNA"></a>
   <ul class="nav-links">
     <li><a href="#inicio">Inicio</a></li>
     <li><a href="#nosotros">Nosotros</a></li>
@@ -24,9 +40,9 @@
     <li><a href="#contacto">Contacto</a></li>
   </ul>
   <div class="nav-r">
-    <button class="ib" title="Favoritos">♡</button>
-    <button class="ib" id="cartBtn" title="Carrito" onclick="openCart()">🛒<span class="cb" id="cc">0</span></button>
-    <button class="hbg" id="hbg"><span></span><span></span><span></span></button>
+    <button class="ib" title="Favoritos" aria-label="Favoritos">♡</button>
+    <button class="ib" id="cartBtn" title="Carrito" aria-label="Carrito">🛒<span class="cb" id="cc">0</span></button>
+    <button class="hbg" id="hbg" aria-label="Menú"><span></span><span></span><span></span></button>
   </div>
 </nav>
 
@@ -34,7 +50,7 @@
 <div class="sb-ov" id="sbo"></div>
 <aside class="sb" id="sb">
   <div class="sb-head">
-    <img src="Img/logo.png" alt="LUNA" class="sb-logo-img">
+    <img src="img/logo.png" alt="LUNA" class="sb-logo-img">
     <button class="sb-x" id="sbx">✕</button>
   </div>
   <nav class="sb-nav">
@@ -45,138 +61,205 @@
   </nav>
   <div class="sb-bot">
     <div class="sb-soc">
-      <a href="#" class="sb-si">f</a>
-      <a href="#" class="sb-si">◎</a>
-      <a href="#" class="sb-si">✉</a>
+      <a href="#" class="sb-si" aria-label="Facebook">f</a>
+      <a href="#" class="sb-si" aria-label="Instagram">◎</a>
+      <a href="#" class="sb-si" aria-label="Email">✉</a>
     </div>
-    <p class="sb-tl">Iluminando tu belleza.<br>© 2025 LUNA</p>
+    <p class="sb-tl">Iluminando tu belleza,<br>noche a noche.</p>
   </div>
 </aside>
 
 <!-- CART SIDEBAR -->
 <div class="sb-ov" id="cbo"></div>
-<aside class="sb" id="csb" style="z-index: 570;">
+<aside class="sb" id="csb" style="z-index:570;">
   <div class="sb-head">
-    <span style="font-family:'Cinzel',serif; color:var(--gold); font-size:18px;">TU CARRITO</span>
+    <span class="cart-title">Tu Carrito</span>
     <button class="sb-x" id="csbx">✕</button>
   </div>
-  <div class="sb-body" id="cart-items">
-    <!-- Items injected by JS -->
-  </div>
-  <div class="sb-foot" id="cart-foot">
-    <!-- Total & Checkout -->
-  </div>
+  <div class="sb-body" id="cart-items"></div>
+  <div class="sb-foot" id="cart-foot"></div>
 </aside>
 
-<!-- HERO -->
-<section id="inicio" class="sw">
-  <div class="hero">
-    <div class="hbgl"></div>
-    <svg class="hero-arc" viewBox="0 0 1400 700" fill="none" preserveAspectRatio="none">
-      <defs>
-        <linearGradient id="ag" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stop-color="#c9a84c" stop-opacity="0"/>
-          <stop offset="35%" stop-color="#c9a84c" stop-opacity="0.7"/>
-          <stop offset="65%" stop-color="#e8d48b" stop-opacity="1"/>
-          <stop offset="100%" stop-color="#c9a84c" stop-opacity="0"/>
-        </linearGradient>
-        <filter id="gf"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-      </defs>
-      <path d="M-50 600 Q360 -80 830 230 Q1060 340 1460 28" stroke="url(#ag)" stroke-width="1.2" filter="url(#gf)"/>
-      <circle cx="830" cy="230" r="3" fill="#e8d48b" opacity="0.9"/>
-      <circle cx="1060" cy="145" r="2" fill="#e8d48b" opacity="0.7"/>
-      <g filter="url(#gf)" opacity="0.9">
-        <line x1="1160" y1="58" x2="1160" y2="78" stroke="#f5e6b8" stroke-width="1.5"/>
-        <line x1="1160" y1="58" x2="1160" y2="38" stroke="#f5e6b8" stroke-width="1.5"/>
-        <line x1="1150" y1="58" x2="1170" y2="58" stroke="#f5e6b8" stroke-width="1.5"/>
-        <line x1="1153" y1="51" x2="1167" y2="65" stroke="#f5e6b8" stroke-width="1"/>
-        <line x1="1167" y1="51" x2="1153" y2="65" stroke="#f5e6b8" stroke-width="1"/>
-      </g>
-    </svg>
-    <div class="orb o1"></div>
-    <div class="orb o2"></div>
-    <div class="orb o3"></div>
-    <div class="hero-in">
-      <div class="hr">
-        <div class="ring r1"><div class="rdot"></div><div class="rdot"></div><div class="rdot"></div><div class="rdot"></div></div>
-        <div class="ring r2"></div>
-        <div class="ring r3"></div>
-        <div class="hglow"></div>
-        <img src="Img/logo.png" alt="LUNA" class="h-logo-img">
-        <div class="sp sp1"></div><div class="sp sp2"></div><div class="sp sp3"></div>
-        <div class="sp sp4"></div><div class="sp sp5"></div><div class="sp sp6"></div>
+<main>
+  <!-- ─── HERO ─── -->
+  <section id="inicio" class="hero" data-theme="dark">
+    <div class="hero-content rv">
+      <!-- Mobile: logo image -->
+      <img src="img/logo.png" alt="LUNA" class="hero-logo">
+
+      <!-- Desktop: typographic headline (shown via CSS) -->
+      <span class="hero-eyebrow">Colección Lunar · 2025</span>
+      <span class="hero-headline">
+        Arte<em>de Belleza</em>
+      </span>
+
+      <p class="hero-sub">Iluminando tu belleza, noche a noche.</p>
+      <a href="#productos" class="btn-o"><span>Descubrir Colección</span></a>
+    </div>
+
+    <!-- Desktop decorative elements -->
+    <div class="hero-side-text">Belleza · Naturaleza · Luz</div>
+    <div class="hero-scroll">
+      <span>Scroll</span>
+      <div class="hero-scroll-line"></div>
+    </div>
+  </section>
+
+  <!-- ─── MARQUEE ─── -->
+  <div class="marquee-strip">
+    <div class="marquee-track">
+      <span>Ingredientes Naturales</span><span class="dot">✦</span>
+      <span>Piel Luminosa</span><span class="dot">✦</span>
+      <span>Belleza Lunar</span><span class="dot">✦</span>
+      <span>100% Natural</span><span class="dot">✦</span>
+      <span>Envío Gratuito +$100</span><span class="dot">✦</span>
+      <span>Certificado Auténtico</span><span class="dot">✦</span>
+      <span>8 Años de Experiencia</span><span class="dot">✦</span>
+      <!-- Duplicate for seamless loop -->
+      <span>Ingredientes Naturales</span><span class="dot">✦</span>
+      <span>Piel Luminosa</span><span class="dot">✦</span>
+      <span>Belleza Lunar</span><span class="dot">✦</span>
+      <span>100% Natural</span><span class="dot">✦</span>
+      <span>Envío Gratuito +$100</span><span class="dot">✦</span>
+      <span>Certificado Auténtico</span><span class="dot">✦</span>
+      <span>8 Años de Experiencia</span><span class="dot">✦</span>
+    </div>
+  </div>
+
+  <!-- ─── PRODUCTS ─── -->
+  <section id="productos" class="sw" data-theme="dark">
+    <div class="sh rv">
+      <div>
+        <span class="sey">Colección Exclusiva</span>
+        <h2 class="st">Nuestros<br>Productos</h2>
       </div>
-      <div class="hl">
-        <div class="eyebrow"><div class="eb-line"></div><span class="eb-txt">Colección Exclusiva 2025</span></div>
-        <p class="h-tag">Descubre la belleza de</p>
-        <h1 class="h-title">LUNA</h1>
-        <p class="h-desc">Explora nuestra exclusiva línea de productos para el cuidado de la piel y déjate cautivar por el resplandor de la belleza lunar.</p>
-        <div class="h-cta">
-          <a href="#productos" class="btn-o"><span>Ver Productos</span></a>
-          <a href="#nosotros" class="btn-g">Nuestra Historia →</a>
+      <p class="ss">Descubre nuestra colección de belleza diseñada para iluminar tu piel con ingredientes de la más alta calidad.</p>
+    </div>
+    <div class="pw">
+      <div id="skeleton-loader" class="skeleton-container">
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+      </div>
+      <div class="pg" id="pg"></div>
+    </div>
+  </section>
+
+  <!-- ─── ABOUT ─── -->
+  <section id="nosotros" class="as" data-theme="dark">
+    <div class="ag">
+      <div class="av rv">
+        <div class="arl"><div class="om"></div></div>
+        <div class="ars"></div>
+        <div class="ami">🌙</div>
+      </div>
+      <div class="rv">
+        <span class="al">Nuestra Historia</span>
+        <h2 class="at">Sobre<br>Nosotras</h2>
+        <p class="ap">Sumérgete en el mundo de la belleza de LUNA. Nuestra pasión por ofrecer productos de la más alta calidad para el cuidado de la piel.</p>
+        <p class="ap">Cada producto LUNA nace de la fusión entre ciencia avanzada y la sabiduría ancestral de los ingredientes naturales, diseñado para revelar la luminosidad única de cada mujer.</p>
+        <div class="astat">
+          <div class="ast"><span class="asn">8+</span><span class="asl">Años</span></div>
+          <div class="ast"><span class="asn">50k</span><span class="asl">Clientas</span></div>
+          <div class="ast"><span class="asn">24</span><span class="asl">Productos</span></div>
+          <div class="ast"><span class="asn">100%</span><span class="asl">Natural</span></div>
         </div>
       </div>
     </div>
-  </div>
-</section>
-
-<!-- PRODUCTS -->
-<section id="productos" class="sw">
-  <div class="sh rv">
-    <span class="sey">Colección Exclusiva</span>
-    <div class="so"><div class="sg"></div></div>
-    <h2 class="st">Nuestros Productos</h2>
-    <p class="ss">Descubre nuestra exclusiva colección de productos de belleza diseñados para iluminar tu piel.</p>
-  </div>
-  <div class="pw"><div class="pg" id="pg"></div></div>
-</section>
-
-<!-- ABOUT -->
-<section id="nosotros" class="as sw">
-  <div class="aab"></div>
-  <div class="ag">
-    <div class="av rv">
-      <div class="arl"><div class="om" style="top:-5px;left:50%;transform:translateX(-50%)"></div><div class="om" style="bottom:-5px;left:50%;transform:translateX(-50%)"></div></div>
-      <div class="ars"></div>
-      <div class="amw"><div class="amg"></div><div class="ami">🌙</div></div>
-    </div>
-    <div class="rv">
-      <span class="al">Nuestra Historia</span>
-      <h2 class="at">Sobre Nosotros</h2>
-      <p class="ap">Sumérgete en el mundo de la belleza de LUNA. Conoce nuestra historia y nuestra pasión por ofrecer productos de la más alta calidad para el cuidado de la piel.</p>
-      <p class="ap">Cada producto LUNA nace de la fusión entre ciencia avanzada y la sabiduría ancestral de los ingredientes naturales, diseñado para revelar la luminosidad única de cada mujer.</p>
-      <div class="astat">
-        <div class="ast"><span class="asn">8+</span><span class="asl">Años</span></div>
-        <div class="ast"><span class="asn">50k</span><span class="asl">Clientas</span></div>
-        <div class="ast"><span class="asn">24</span><span class="asl">Productos</span></div>
-        <div class="ast"><span class="asn">100%</span><span class="asl">Natural</span></div>
-      </div>
-    </div>
-  </div>
-</section>
+  </section>
+</main>
 
 <!-- FOOTER -->
-<footer id="contacto">
-  <span class="fl">✦ LUNA ✦</span>
-  <p class="ftl">Iluminando tu belleza, noche a noche</p>
-  <div class="fsoc">
-    <a href="#" class="fsi">f</a><a href="#" class="fsi">◎</a>
-    <a href="#" class="fsi">✆</a><a href="#" class="fsi">✉</a>
+<footer id="contacto" data-theme="dark">
+  <div class="footer-inner">
+    <div>
+      <a href="#" class="footer-logo">✦ LUNA ✦</a>
+      <p class="ftl">Iluminando tu belleza,<br>noche a noche.</p>
+      <div class="fsoc">
+        <a href="#" class="fsi">f</a>
+        <a href="#" class="fsi">◎</a>
+        <a href="#" class="fsi">✆</a>
+        <a href="#" class="fsi">✉</a>
+      </div>
+    </div>
+    <div>
+      <ul class="flinks">
+        <li><a href="#inicio">Inicio</a></li>
+        <li><a href="#nosotros">Nosotros</a></li>
+        <li><a href="#productos">Productos</a></li>
+        <li><a href="#contacto">Contacto</a></li>
+        <li><a href="#">Privacidad</a></li>
+        <li><a href="#">Términos</a></li>
+      </ul>
+    </div>
+    <div>
+      <p style="font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold-dim);margin-bottom:16px;">Síguenos</p>
+      <p style="font-size:13px;color:var(--text-soft);line-height:1.8;">Envío gratuito en pedidos<br>superiores a $100<br>Pago seguro · Ingredientes confiables</p>
+    </div>
   </div>
-  <ul class="flinks">
-    <li><a href="#inicio">Inicio</a></li><li><a href="#nosotros">Nosotros</a></li>
-    <li><a href="#productos">Productos</a></li><li><a href="#contacto">Contacto</a></li>
-    <li><a href="#">Privacidad</a></li><li><a href="#">Términos</a></li>
-  </ul>
-  <p class="fbot">Envío gratuito en pedidos superiores a $100 · Pago seguro · Ingredientes confiables<br>© 2025 LUNA Beauty · Todos los derechos reservados</p>
+  <p class="fbot">© 2025 LUNA Beauty · Todos los derechos reservados</p>
 </footer>
 
-<!-- MODAL -->
-<div class="mo" id="mo"><div class="md" id="md"><button class="mc" id="mcl">✕</button><div id="mw"></div></div></div>
+<!-- PRODUCT MODAL -->
+<div class="mo" id="mo">
+  <div class="md" id="md">
+    <button class="mc" id="mcl">✕</button>
+    <div id="mw"></div>
+  </div>
+</div>
+
+<!-- CHECKOUT MODAL -->
+<div class="mo" id="cmo">
+  <div class="md" style="max-width:480px;padding:40px;text-align:center;">
+    <h3 class="checkout-title">Actualización del Pedido</h3>
+    <div id="cm-content" class="checkout-content"></div>
+    <button class="btn-gf" onclick="closeCheckoutModal()">Entendido</button>
+  </div>
+</div>
 
 <!-- TOAST -->
-<div class="toast" id="toast"><div class="tt">✦ LUNA</div><div class="tm" id="tmsg">Producto añadido</div></div>
+<div class="toast" id="toast">
+  <div class="tt">✦ LUNA</div>
+  <div class="tm" id="tmsg">Producto añadido</div>
+</div>
+
+<!-- UPDATE BANNER -->
+<div class="update-banner" id="updateBanner">
+  <span>✨ Novedades en el catálogo</span>
+  <button id="updateNowBtn">Actualizar</button>
+</div>
+
+<!-- LOADER -->
+<div id="loader-overlay" class="active">
+  <div class="spinner"></div>
+  <div class="loading-text">Cargando colección lunar...</div>
+</div>
 
 <script src="script.js" defer></script>
+<script>
+  // ─── Custom cursor (desktop only) ───
+  if (window.innerWidth >= 1024) {
+    const dot = document.createElement('div');
+    dot.className = 'cursor-dot';
+    const ring = document.createElement('div');
+    ring.className = 'cursor-ring';
+    document.body.append(dot, ring);
+
+    let mx = 0, my = 0, rx = 0, ry = 0;
+    document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
+    function animCursor() {
+      dot.style.left = mx + 'px'; dot.style.top = my + 'px';
+      rx += (mx - rx) * .12; ry += (my - ry) * .12;
+      ring.style.left = rx + 'px'; ring.style.top = ry + 'px';
+      requestAnimationFrame(animCursor);
+    }
+    animCursor();
+
+    document.querySelectorAll('a,button,.pc,.pbtn').forEach(el => {
+      el.addEventListener('mouseenter', () => document.body.classList.add('cursor-hover'));
+      el.addEventListener('mouseleave', () => document.body.classList.remove('cursor-hover'));
+    });
+  }
+</script>
 </body>
 </html>
