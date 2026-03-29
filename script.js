@@ -2,7 +2,7 @@
 const PROXY_URL = 'https://corsproxy.io/?';
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRmFOg19QckG5j_OaZldxicj5x9YxijlFEnoRrW62YXx6Mu5km52v47O9nvsgoM0srsq3OEVvc-U4UR/pub?output=csv';
 const FALLBACK_PROXY = 'https://api.allorigins.win/raw?url=';
-const SYNC_INTERVAL = 30000; // 30 segundos
+const SYNC_INTERVAL = 30000;
 
 let products = [];
 let cart = [];
@@ -49,7 +49,6 @@ function hideSkeleton() {
 async function fetchProducts(forceFresh = true) {
   try {
     let csvText = null;
-    // Intentar con proxy principal
     try {
       const url = PROXY_URL + encodeURIComponent(SHEET_URL + '&t=' + Date.now());
       const response = await fetch(url);
@@ -68,13 +67,12 @@ async function fetchProducts(forceFresh = true) {
 
     const newProds = parseCSV(csvText);
     const newHash = JSON.stringify(newProds.map(p => ({ id: p.id, estado: p.estado, price: p.price, name: p.name })));
-    
-    // Si hay cambios y no estamos en carga inicial, mostrar banner (solo una vez)
+
     if (!initialLoad && currentHash !== '' && currentHash !== newHash && !updateBannerVisible) {
       updateBanner.classList.add('active');
       updateBannerVisible = true;
     }
-    
+
     currentHash = newHash;
     return newProds;
   } catch (error) {
@@ -122,24 +120,18 @@ function parseCSV(csvText) {
 
   const headers = rows[0].map(h => h.toLowerCase().trim());
   const cardStyles = [
-    { bg: 'radial-gradient(ellipse at center,#1a1530 0%,#0d0e18 100%)', gc: 'rgba(180,140,220,.18)' },
-    { bg: 'radial-gradient(ellipse at center,#151f1a 0%,#0c0f12 100%)', gc: 'rgba(100,200,140,.14)' },
-    { bg: 'radial-gradient(ellipse at center,#1e1710 0%,#100e08 100%)', gc: 'rgba(212,175,55,.25)' },
-    { bg: 'radial-gradient(ellipse at center,#201a15 0%,#0f0e0b 100%)', gc: 'rgba(200, 150, 100, .15)' },
-    { bg: 'radial-gradient(ellipse at center,#251815 0%,#120a0a 100%)', gc: 'rgba(220, 130, 130, .18)' },
-    { bg: 'radial-gradient(ellipse at center,#101820 0%,#05080a 100%)', gc: 'rgba(130, 180, 220, .15)' }
+    { bg: 'radial-gradient(ellipse at center,#1a1530 0%,#0d0e18 100%)', gc: 'rgba(180,140,220,.2)' },
+    { bg: 'radial-gradient(ellipse at center,#151f1a 0%,#0c0f12 100%)', gc: 'rgba(100,200,140,.16)' },
+    { bg: 'radial-gradient(ellipse at center,#1e1710 0%,#100e08 100%)', gc: 'rgba(212,175,55,.28)' },
+    { bg: 'radial-gradient(ellipse at center,#201a15 0%,#0f0e0b 100%)', gc: 'rgba(200,150,100,.18)' },
+    { bg: 'radial-gradient(ellipse at center,#251815 0%,#120a0a 100%)', gc: 'rgba(220,130,130,.2)' },
+    { bg: 'radial-gradient(ellipse at center,#101820 0%,#05080a 100%)', gc: 'rgba(130,180,220,.18)' }
   ];
 
   return rows.slice(1).map((row, idx) => {
     const product = {
-      id: null,
-      name: '',
-      desc: '',
-      long: '',
-      price: 0,
-      oldPrice: null,
-      type: '',
-      img: '',
+      id: null, name: '', desc: '', long: '',
+      price: 0, oldPrice: null, type: '', img: '',
       estado: 'inactivo',
       bg: cardStyles[idx % cardStyles.length].bg,
       gc: cardStyles[idx % cardStyles.length].gc,
@@ -154,15 +146,11 @@ function parseCSV(csvText) {
         case 'estado': product.estado = value.toLowerCase().trim(); break;
         case 'descripcion': product.desc = value; product.long = value; break;
         case 'precio':
-          let raw = parseFloat(value.replace(/[^0-9.]/g, '')) || 0;
-          product.price = raw;
+          product.price = parseFloat(value.replace(/[^0-9.]/g, '')) || 0;
           break;
         case 'descuento':
           let disc = parseFloat(value.replace(/[^0-9.]/g, '')) || 0;
-          if (disc > 0) {
-            product.oldPrice = product.price;
-            product.price = product.price - disc;
-          }
+          if (disc > 0) { product.oldPrice = product.price; product.price -= disc; }
           break;
         case 'tipo': product.type = value; break;
         case 'imagen':
@@ -181,32 +169,43 @@ function parseCSV(csvText) {
 
     product.priceFormatted = '$' + product.price.toFixed(2);
     product.oldPriceFormatted = product.oldPrice ? '$' + product.oldPrice.toFixed(2) : null;
-
     return product.estado === 'activo' && product.id ? product : null;
   }).filter(p => p !== null);
 }
 
-// ===================== RENDER Y ACTUALIZACIÓN =====================
+// ===================== RENDER =====================
 function renderProducts() {
   if (!productsContainer) return;
   productsContainer.innerHTML = '';
 
   const groups = {};
+  const groupOrder = [];
   products.forEach(p => {
     const type = p.type || 'Colección';
-    if (!groups[type]) groups[type] = [];
+    if (!groups[type]) { groups[type] = []; groupOrder.push(type); }
     groups[type].push(p);
   });
 
   let html = '';
-  for (const [type, items] of Object.entries(groups)) {
-    html += `<h3 class="type-title rv">${type}</h3>`;
-    html += `<div class="pg">`;
-    items.forEach(p => {
-      html += createProductCardHTML(p);
-    });
-    html += `</div>`;
-  }
+  groupOrder.forEach((type, idx) => {
+    const items = groups[type];
+    html += `
+      <div class="product-group rv">
+        <div class="group-header">
+          <div class="group-header-left">
+            <span class="group-num">${String(idx + 1).padStart(2, '0')}</span>
+            <div>
+              <h3 class="group-title">${type}</h3>
+              <p class="group-count">${items.length} producto${items.length !== 1 ? 's' : ''}</p>
+            </div>
+          </div>
+          <div class="group-header-line"></div>
+        </div>
+        <div class="product-grid">
+          ${items.map(p => createProductCardHTML(p)).join('')}
+        </div>
+      </div>`;
+  });
   productsContainer.innerHTML = html;
   observeRv();
 }
@@ -236,57 +235,9 @@ function createProductCardHTML(p) {
 }
 
 function silentUpdate(newProducts) {
-  // 1. Actualizar store
   products = newProducts;
-
-  // 2. Obtener todas las tarjetas existentes
-  const existingCards = new Map();
-  document.querySelectorAll('.pc').forEach(card => {
-    const id = parseInt(card.id.split('-')[1]);
-    existingCards.set(id, card);
-  });
-
-  // 3. Procesar nuevos productos
-  newProducts.forEach(p => {
-    const existingCard = existingCards.get(p.id);
-    if (existingCard) {
-      // Actualizar contenido
-      updateCardContent(existingCard, p);
-      existingCards.delete(p.id);
-    } else {
-      // Agregar nueva tarjeta
-      const groupTitle = Array.from(document.querySelectorAll('.type-title')).find(el => el.textContent === (p.type || 'Colección'));
-      let groupDiv = groupTitle ? groupTitle.nextElementSibling : null;
-      if (!groupDiv) {
-        const wrapper = document.querySelector('.pw');
-        const title = document.createElement('h3');
-        title.className = 'type-title rv vis';
-        title.textContent = p.type || 'Colección';
-        wrapper.insertBefore(title, wrapper.children[0]);
-        groupDiv = document.createElement('div');
-        groupDiv.className = 'pg';
-        wrapper.insertBefore(groupDiv, title.nextSibling);
-      }
-      groupDiv.insertAdjacentHTML('beforeend', createProductCardHTML(p));
-    }
-  });
-
-  // 4. Eliminar tarjetas que ya no existen
-  existingCards.forEach((card, id) => {
-    card.classList.add('fade-out');
-    setTimeout(() => card.remove(), 500);
-  });
-
-  // 5. Si algún grupo quedó vacío, eliminarlo también
-  document.querySelectorAll('.pg').forEach(group => {
-    if (group.children.length === 0) {
-      const title = group.previousElementSibling;
-      if (title && title.classList.contains('type-title')) {
-        title.remove();
-      }
-      group.remove();
-    }
-  });
+  // Re-render fully for simplicity and correctness with grouped layout
+  renderProducts();
 }
 
 function updateCardContent(card, p) {
@@ -302,15 +253,8 @@ function updateCardContent(card, p) {
   if (prices) {
     prices.innerHTML = `
       ${p.oldPriceFormatted ? `<span class="pprice-old">${p.oldPriceFormatted}</span>` : ''}
-      <span class="pprice">${p.priceFormatted}</span>
-    `;
+      <span class="pprice">${p.priceFormatted}</span>`;
   }
-  let badge = card.querySelector('.pb');
-  if (p.badge && !badge) {
-    const pi = card.querySelector('.pi');
-    pi.insertAdjacentHTML('beforeend', `<span class="pb">${p.badge}</span>`);
-  } else if (!p.badge && badge) badge.remove();
-  else if (badge) badge.textContent = p.badge;
   card.classList.add('updated');
   setTimeout(() => card.classList.remove('updated'), 2000);
 }
@@ -325,46 +269,32 @@ function loadCart() {
   updateCartCount();
 }
 
-function saveCart() {
-  localStorage.setItem('luna_cart', JSON.stringify(cart));
-}
+function saveCart() { localStorage.setItem('luna_cart', JSON.stringify(cart)); }
 
 function addToCart(productId, quantity = 1) {
   const product = products.find(p => p.id === productId);
-  if (!product) {
-    showToast('Producto no disponible');
-    return false;
-  }
+  if (!product) { showToast('Producto no disponible'); return false; }
   const existing = cart.find(item => item.id === productId);
   if (existing) {
     existing.quantity += quantity;
-    showToast(`${quantity} ${product.name} añadido(s). Total: ${existing.quantity}`);
+    showToast(`${product.name} actualizado en carrito`);
   } else {
     cart.push({ ...product, quantity });
-    showToast(`${quantity} ${product.name} añadido al carrito`);
+    showToast(`${product.name} añadido al carrito`);
   }
-  saveCart();
-  updateCartCount();
-  renderCartSidebar();
+  saveCart(); updateCartCount(); renderCartSidebar();
   return true;
 }
 
 function removeFromCart(index) {
   cart.splice(index, 1);
-  saveCart();
-  updateCartCount();
-  renderCartSidebar();
+  saveCart(); updateCartCount(); renderCartSidebar();
 }
 
 function updateQuantity(index, delta) {
   const newQty = cart[index].quantity + delta;
-  if (newQty <= 0) {
-    removeFromCart(index);
-  } else {
-    cart[index].quantity = newQty;
-    saveCart();
-    renderCartSidebar();
-  }
+  if (newQty <= 0) { removeFromCart(index); }
+  else { cart[index].quantity = newQty; saveCart(); renderCartSidebar(); }
   updateCartCount();
 }
 
@@ -378,11 +308,10 @@ function updateCartCount() {
 function renderCartSidebar() {
   if (!cartItemsContainer) return;
   if (cart.length === 0) {
-    cartItemsContainer.innerHTML = '<div class="c-empty">Tu carrito está vacío.<br>Descubre nuestra belleza lunar.</div>';
+    cartItemsContainer.innerHTML = '<div class="c-empty">Tu carrito está vacío.<br><br>Descubre nuestra belleza lunar.</div>';
     cartFoot.style.display = 'none';
     return;
   }
-
   let total = 0;
   cartItemsContainer.innerHTML = cart.map((item, idx) => {
     const priceNum = parseFloat(item.price);
@@ -395,33 +324,28 @@ function renderCartSidebar() {
           <div class="c-name">${item.name}</div>
           <div class="c-price">${item.priceFormatted}</div>
           <div class="c-quantity">
-            <button onclick="updateQuantity(${idx}, -1)">-</button>
+            <button onclick="updateQuantity(${idx},-1)">−</button>
             <span>${item.quantity}</span>
-            <button onclick="updateQuantity(${idx}, 1)">+</button>
+            <button onclick="updateQuantity(${idx},1)">+</button>
           </div>
         </div>
         <button class="c-rem" onclick="removeFromCart(${idx})">✕</button>
-      </div>
-    `;
+      </div>`;
   }).join('');
-
   cartFoot.style.display = 'block';
   cartFoot.innerHTML = `
     <div class="c-total"><span>Total</span><span>$${total.toFixed(2)}</span></div>
-    <button class="btn-gf" onclick="validateCheckout()">Finalizar Pedido</button>
-  `;
+    <button class="btn-primary" style="width:100%;justify-content:center" onclick="validateCheckout()"><span>Finalizar Pedido</span></button>`;
 }
 
-// ===================== CHECKOUT CON VALIDACIÓN =====================
+// ===================== CHECKOUT =====================
 async function validateCheckout() {
   showLoader(true);
   try {
     const freshProducts = await fetchProducts(true);
     if (!freshProducts) throw new Error('No se pudieron obtener datos frescos');
-
     const changes = [];
     const updatedCart = [];
-
     for (const item of cart) {
       const fresh = freshProducts.find(p => p.id === item.id);
       if (!fresh) {
@@ -433,14 +357,9 @@ async function validateCheckout() {
         updatedCart.push({ ...fresh, quantity: item.quantity });
       }
     }
-
     if (changes.length > 0) {
-      cart = updatedCart;
-      saveCart();
-      renderCartSidebar();
-      updateCartCount();
-      showValidationModal(changes);
-      silentUpdate(freshProducts);
+      cart = updatedCart; saveCart(); renderCartSidebar(); updateCartCount();
+      showValidationModal(changes); silentUpdate(freshProducts);
     } else {
       sendOrderToWhatsApp();
     }
@@ -459,21 +378,16 @@ function showValidationModal(changes) {
     if (c.type === 'removed') {
       return `<div class="cm-item removed"><div class="cm-title">${c.name}</div><div class="cm-desc">Producto no disponible</div></div>`;
     } else {
-      return `<div class="cm-item"><div class="cm-title">${c.name}</div><div class="cm-desc">Precio actualizado: <span style="text-decoration:line-through">${c.old}</span> → <span style="color:var(--gold)">${c.new}</span></div></div>`;
+      return `<div class="cm-item"><div class="cm-title">${c.name}</div><div class="cm-desc">Precio actualizado: <span style="text-decoration:line-through">${c.old}</span> → <strong style="color:var(--gold)">${c.new}</strong></div></div>`;
     }
   }).join('');
   modal.classList.add('active');
 }
 
-function closeCheckoutModal() {
-  document.getElementById('cmo').classList.remove('active');
-}
+function closeCheckoutModal() { document.getElementById('cmo').classList.remove('active'); }
 
 function sendOrderToWhatsApp() {
-  if (cart.length === 0) {
-    showToast('Carrito vacío');
-    return;
-  }
+  if (cart.length === 0) { showToast('Carrito vacío'); return; }
   let message = "¡Hola! ✨ Quisiera hacer el siguiente pedido:\n\n";
   let total = 0;
   cart.forEach(item => {
@@ -482,17 +396,14 @@ function sendOrderToWhatsApp() {
     message += `- ${item.quantity}x ${item.name} (${item.priceFormatted}) → $${subtotal.toFixed(2)}\n`;
   });
   message += `\n*Total: $${total.toFixed(2)}*`;
-  const phone = '59177424842'; // Reemplazar con tu número
+  const phone = '59177424842';
   window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
 }
 
 // ===================== MODAL =====================
 function openModal(productId) {
   const product = products.find(p => p.id === productId);
-  if (!product) {
-    showToast('Producto no disponible');
-    return;
-  }
+  if (!product) { showToast('Producto no disponible'); return; }
   const modalContent = document.getElementById('mw');
   let selectedQuantity = 1;
 
@@ -506,40 +417,28 @@ function openModal(productId) {
         <h2 class="mname">${product.name}</h2>
         <p class="mdesc">${product.long || product.desc}</p>
         <div class="mprice">
-          ${product.oldPriceFormatted ? `<span class="pprice-old" style="font-size:0.6em; margin-right:15px;">${product.oldPriceFormatted}</span>` : ''}
+          ${product.oldPriceFormatted ? `<span class="pprice-old" style="font-size:.55em;margin-right:12px;">${product.oldPriceFormatted}</span>` : ''}
           ${product.priceFormatted}
         </div>
         <div class="quantity-selector">
           <span>Cantidad:</span>
-          <button class="qty-btn" id="qty-minus">-</button>
+          <button class="qty-btn" id="qty-minus">−</button>
           <span id="qty-value">1</span>
           <button class="qty-btn" id="qty-plus">+</button>
         </div>
         <div class="mact">
-          <button class="btn-gf" id="buy-now-btn">Comprar Ahora</button>
-          <button class="btn-o" id="add-to-cart-btn"><span>Añadir al Carrito</span></button>
+          <button class="btn-primary" id="buy-now-btn" style="flex:1;justify-content:center"><span>Comprar Ahora</span></button>
+          <button class="btn-ghost" id="add-to-cart-btn" style="flex:1;justify-content:center">Añadir al Carrito</button>
         </div>
       </div>
     </div>
+    ${product.beneficios && product.beneficios.length ? `
     <div class="mdet">
       <div class="mdt">Beneficios</div>
-      <div class="mdg">
-        ${product.beneficios && product.beneficios.length ? `
-          <div class="dc">
-            <ul>${product.beneficios.map(b => `<li>${b}</li>`).join('')}</ul>
-          </div>
-        ` : '<div class="dc"><p>Ingredientes naturales para cuidar tu piel.</p></div>'}
-        <div class="dc">
-          <h4>Envío</h4>
-          <ul><li>Envío gratuito en compras superiores a $100</li><li>Entregas a todo el país</li></ul>
-        </div>
-        <div class="dc">
-          <h4>Garantía</h4>
-          <ul><li>Producto 100% original</li><li>Certificado de autenticidad</li></ul>
-        </div>
+      <div class="dc">
+        <ul>${product.beneficios.map(b => `<li>${b}</li>`).join('')}</ul>
       </div>
-    </div>
-  `;
+    </div>` : ''}`;
 
   const qtyMinus = document.getElementById('qty-minus');
   const qtyPlus = document.getElementById('qty-plus');
@@ -547,7 +446,7 @@ function openModal(productId) {
   const buyBtn = document.getElementById('buy-now-btn');
   const addBtn = document.getElementById('add-to-cart-btn');
 
-  const updateQuantity = (delta) => {
+  const updateQty = (delta) => {
     let newVal = selectedQuantity + delta;
     if (newVal < 1) newVal = 1;
     if (newVal > 99) newVal = 99;
@@ -555,21 +454,12 @@ function openModal(productId) {
     qtySpan.textContent = selectedQuantity;
   };
 
-  qtyMinus.onclick = () => updateQuantity(-1);
-  qtyPlus.onclick = () => updateQuantity(1);
+  qtyMinus.onclick = () => updateQty(-1);
+  qtyPlus.onclick = () => updateQty(1);
+  buyBtn.onclick = () => { addToCart(product.id, selectedQuantity); closeModal(); setTimeout(() => openCart(), 300); };
+  addBtn.onclick = () => { addToCart(product.id, selectedQuantity); closeModal(); };
 
-  buyBtn.onclick = () => {
-    addToCart(product.id, selectedQuantity);
-    closeModal();
-    setTimeout(() => openCart(), 300);
-  };
-  addBtn.onclick = () => {
-    addToCart(product.id, selectedQuantity);
-    closeModal();
-  };
-
-  const modal = document.getElementById('mo');
-  modal.classList.add('active');
+  document.getElementById('mo').classList.add('active');
   document.body.style.overflow = 'hidden';
 }
 
@@ -603,7 +493,7 @@ function closeCart() {
   document.body.style.overflow = '';
 }
 
-// ===================== REVEAL ON SCROLL =====================
+// ===================== SCROLL REVEAL =====================
 function observeRv() {
   const observer = new IntersectionObserver(entries => {
     entries.forEach(entry => {
@@ -612,31 +502,18 @@ function observeRv() {
         observer.unobserve(entry.target);
       }
     });
-  }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+  }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
   document.querySelectorAll('.rv').forEach(el => observer.observe(el));
 }
 
-// ===================== NAV THEME OBSERVER =====================
+// ===================== NAV SCROLL =====================
 const nav = document.getElementById('mn');
-const sections = document.querySelectorAll('section, footer');
-const sectionObserver = new IntersectionObserver((entries) => {
-  entries.forEach(entry => {
-    if (entry.isIntersecting) {
-      const theme = entry.target.getAttribute('data-theme');
-      if (theme === 'light') nav.classList.add('nav-light');
-      else nav.classList.remove('nav-light');
-    }
-  });
-}, { rootMargin: '-30px 0px -90% 0px' });
-sections.forEach(s => sectionObserver.observe(s));
-
-// ===================== SCROLL EFFECT =====================
 window.addEventListener('scroll', () => {
-  if (window.scrollY > 50) nav.classList.add('scrolled');
+  if (window.scrollY > 60) nav.classList.add('scrolled');
   else nav.classList.remove('scrolled');
 });
 
-// ===================== PARTICLES (escritorio) =====================
+// ===================== PARTICLES =====================
 if (window.innerWidth >= 768) {
   const canvas = document.getElementById('pc');
   if (canvas) {
@@ -649,29 +526,14 @@ if (window.innerWidth >= 768) {
     }
     function initStars() {
       stars = [];
-      const numStars = Math.floor(width * height / 8000);
+      const numStars = Math.floor(width * height / 9000);
       for (let i = 0; i < numStars; i++) {
         stars.push({
-          x: Math.random() * width,
-          y: Math.random() * height,
-          r: Math.random() * 1.5 + 0.2,
-          o: Math.random() * 0.5 + 0.1,
-          p: Math.random() * Math.PI * 2,
-          sp: 0.002 + Math.random() * 0.003
+          x: Math.random() * width, y: Math.random() * height,
+          r: Math.random() * 1.2 + 0.2, o: Math.random() * 0.4 + 0.1,
+          p: Math.random() * Math.PI * 2, sp: 0.002 + Math.random() * 0.003
         });
       }
-    }
-    function spawnParticle() {
-      if (particles.length > 50) return;
-      particles.push({
-        x: Math.random() * width,
-        y: Math.random() * height,
-        vx: (Math.random() - 0.5) * 0.2,
-        vy: -Math.random() * 0.4 - 0.1,
-        life: 0,
-        max: 150 + Math.random() * 100,
-        r: Math.random() * 1.5 + 0.5
-      });
     }
     let t = 0;
     function draw() {
@@ -681,47 +543,32 @@ if (window.innerWidth >= 768) {
         const o = s.o * (0.6 + 0.4 * Math.sin(t * s.sp + s.p));
         ctx.beginPath();
         ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(212, 175, 55, ${o})`;
-        ctx.fill();
-      });
-      if (t % 5 === 0) spawnParticle();
-      particles = particles.filter(p => p.life < p.max);
-      particles.forEach(p => {
-        p.life++;
-        p.x += p.vx;
-        p.y += p.vy;
-        const progress = p.life / p.max;
-        const o = progress < 0.2 ? progress / 0.2 : progress > 0.8 ? (1 - progress) / 0.2 : 1;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(212, 175, 55, ${o * 0.4})`;
+        ctx.fillStyle = `rgba(212,175,55,${o})`;
         ctx.fill();
       });
       requestAnimationFrame(draw);
     }
-    resize();
-    draw();
+    resize(); draw();
     window.addEventListener('resize', resize);
   }
 }
 
-// ===================== INICIALIZACIÓN =====================
+// ===================== INIT =====================
 async function init() {
   loadCart();
-
-  // Cargar datos frescos con spinner visible
   const freshData = await fetchProducts(true);
   if (freshData && freshData.length) {
     products = freshData;
     renderProducts();
   } else {
-    productsContainer.innerHTML = '<div class="error-message" style="text-align:center; padding:40px; color:var(--gold);">No se pudieron cargar los productos. Por favor, recarga la página.</div>';
+    if (productsContainer) {
+      productsContainer.innerHTML = '<div style="text-align:center;padding:60px 24px;color:var(--gold);font-family:\'Syne\',sans-serif;font-size:13px;letter-spacing:.14em">No se pudieron cargar los productos. Por favor, recarga la página.</div>';
+    }
   }
   showLoader(false);
   hideSkeleton();
   initialLoad = false;
 
-  // Iniciar verificación periódica
   setInterval(async () => {
     if (document.visibilityState === 'visible') {
       const newData = await fetchProducts(true);
@@ -733,7 +580,6 @@ async function init() {
   }, SYNC_INTERVAL);
 }
 
-// Botón de actualización manual - RECARGA COMPLETA DEL CATÁLOGO
 updateNowBtn?.addEventListener('click', async () => {
   updateBanner.classList.remove('active');
   updateBannerVisible = false;
@@ -741,30 +587,21 @@ updateNowBtn?.addEventListener('click', async () => {
   const fresh = await fetchProducts(true);
   if (fresh && fresh.length) {
     products = fresh;
-    // Forzar renderizado completo (no solo actualización silenciosa)
     renderProducts();
-    // También actualizar el carrito en caso de cambios en precios/nombres
     const updatedCart = [];
     let cartChanged = false;
     for (const item of cart) {
       const freshItem = fresh.find(p => p.id === item.id);
       if (freshItem) {
-        if (freshItem.price !== item.price || freshItem.name !== item.name) {
-          cartChanged = true;
-        }
+        if (freshItem.price !== item.price || freshItem.name !== item.name) cartChanged = true;
         updatedCart.push({ ...freshItem, quantity: item.quantity });
       } else {
         cartChanged = true;
-        // Producto ya no existe, lo eliminamos del carrito
-        continue;
       }
     }
     if (cartChanged) {
-      cart = updatedCart;
-      saveCart();
-      renderCartSidebar();
-      updateCartCount();
-      showToast('El catálogo se ha actualizado. Revisa tu carrito.');
+      cart = updatedCart; saveCart(); renderCartSidebar(); updateCartCount();
+      showToast('El catálogo se actualizó. Revisa tu carrito.');
     } else {
       showToast('Catálogo actualizado');
     }
@@ -784,5 +621,5 @@ document.getElementById('cartBtn')?.addEventListener('click', openCart);
 cartCloseBtn?.addEventListener('click', closeCart);
 cartOverlay?.addEventListener('click', closeCart);
 document.getElementById('mcl')?.addEventListener('click', closeModal);
-document.getElementById('mo')?.addEventListener('click', (e) => { if (e.target === document.getElementById('mo')) closeModal(); });
+document.getElementById('mo')?.addEventListener('click', e => { if (e.target === document.getElementById('mo')) closeModal(); });
 document.querySelectorAll('.sb-nav a').forEach(link => link.addEventListener('click', closeSidebar));
