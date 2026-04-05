@@ -1,6 +1,8 @@
 // ===================== CONFIGURACIÓN =====================
 const PROXY_URL = 'https://corsproxy.io/?';
-const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRmFOg19QckG5j_OaZldxicj5x9YxijlFEnoRrW62YXx6Mu5km52v47O9nvsgoM0srsq3OEVvc-U4UR/pub?output=csv';
+const SHEET_BASE = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRmFOg19QckG5j_OaZldxicj5x9YxijlFEnoRrW62YXx6Mu5km52v47O9nvsgoM0srsq3OEVvc-U4UR/pub';
+const SHEET_URL = SHEET_BASE + '?output=csv';
+const SHEET_URL_MENSAJE = SHEET_BASE + '?output=csv&gid=9360674';
 const FALLBACK_PROXY = 'https://api.allorigins.win/raw?url=';
 const SYNC_INTERVAL = 30000;
 
@@ -396,7 +398,7 @@ function sendOrderToWhatsApp() {
     message += `- ${item.quantity}x ${item.name} (${item.priceFormatted}) → $${subtotal.toFixed(2)}\n`;
   });
   message += `\n*Total: $${total.toFixed(2)}*`;
-  const phone = '59177424842';
+  const phone = '59169485374';
   window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
 }
 
@@ -553,10 +555,140 @@ if (window.innerWidth >= 768) {
   }
 }
 
+// ===================== BIRTHDAY SPLASH =====================
+async function fetchMensaje() {
+  const baseUrl = SHEET_URL_MENSAJE + '&t=' + Date.now();
+  console.log('[MENSAJE] URL:', baseUrl);
+
+  try {
+    const res = await fetch(baseUrl, { cache: 'no-store' });
+    console.log('[MENSAJE] Status:', res.status);
+    if (res.ok) {
+      const txt = await res.text();
+      console.log('[MENSAJE] Respuesta:\n', txt.slice(0, 300));
+      return txt;
+    }
+  } catch(e) { console.warn('[MENSAJE] Directo error:', e.message); }
+
+  try {
+    const url = PROXY_URL + encodeURIComponent(baseUrl);
+    const res = await fetch(url, { cache: 'no-store' });
+    if (res.ok) {
+      const txt = await res.text();
+      console.log('[MENSAJE] Proxy respuesta:\n', txt.slice(0, 300));
+      return txt;
+    }
+  } catch(e) { console.warn('[MENSAJE] Proxy error:', e.message); }
+
+  try {
+    const url = FALLBACK_PROXY + encodeURIComponent(baseUrl);
+    const res = await fetch(url, { cache: 'no-store' });
+    if (res.ok) {
+      const txt = await res.text();
+      console.log('[MENSAJE] Fallback respuesta:\n', txt.slice(0, 300));
+      return txt;
+    }
+  } catch(e) { console.warn('[MENSAJE] Fallback error:', e.message); }
+
+  console.error('[MENSAJE] Todos los métodos fallaron');
+  return null;
+}
+
+function parseMensaje(csv) {
+  if (!csv) return null;
+  console.log('[MENSAJE] CSV recibido (primeros 300 chars):\n', csv.slice(0, 300));
+
+  const rows = [];
+  let cur = [], cell = '', inQ = false;
+  for (let i = 0; i < csv.length; i++) {
+    const c = csv[i], n = csv[i+1];
+    if (c === '"') { if (inQ && n === '"') { cell += '"'; i++; } else { inQ = !inQ; } }
+    else if (c === ',' && !inQ) { cur.push(cell.trim()); cell = ''; }
+    else if ((c === '\n' || c === '\r') && !inQ) {
+      if (c === '\r' && n === '\n') i++;
+      cur.push(cell.trim()); cell = '';
+      if (cur.some(v => v)) rows.push(cur);
+      cur = [];
+    } else { cell += c; }
+  }
+  if (cell) cur.push(cell.trim());
+  if (cur.some(v => v)) rows.push(cur);
+
+  if (rows.length < 2) return null;
+
+  const keys = rows[0].map(k => k.toLowerCase().trim().replace(/^"|"$/g,''));
+  const vals = rows[1].map(v => v.trim().replace(/^"|"$/g,''));
+
+  const data = {};
+  keys.forEach((k, i) => { if (k) data[k] = vals[i] || ''; });
+  console.log('[MENSAJE] Claves encontradas:', keys);
+  console.log('[MENSAJE] Valores encontrados:', vals);
+  console.log('[MENSAJE] Objeto final:', data);
+  return data;
+}
+
+function showBirthdaySplash(data) {
+  const splash = document.getElementById('bday-splash');
+  if (!splash) return;
+
+  // Aplicar contenido desde sheets
+  if (data) {
+    if (data.titulo)  document.getElementById('bdayTitle').textContent = data.titulo;
+    if (data.nombre)  document.getElementById('bdayName').textContent = data.nombre;
+    if (data.mensaje) document.getElementById('bdayText').textContent = data.mensaje;
+    if (data.de)      document.getElementById('bdayFrom').textContent = '✦ De: ' + data.de + ' ✦';
+  }
+
+  // Crear partículas animadas
+  const container = document.getElementById('bdayParticles');
+  if (container) {
+    const symbols = ['✦', '✧', '❤', '🌙', '⭐', '✨'];
+    for (let i = 0; i < 28; i++) {
+      const p = document.createElement('span');
+      p.className = 'bday-particle';
+      p.textContent = symbols[Math.floor(Math.random() * symbols.length)];
+      p.style.cssText = `
+        left:${Math.random()*100}%;
+        top:${Math.random()*100}%;
+        animation-delay:${Math.random()*6}s;
+        animation-duration:${4 + Math.random()*6}s;
+        font-size:${10 + Math.random()*18}px;
+        opacity:${0.08 + Math.random()*0.18};
+      `;
+      container.appendChild(p);
+    }
+  }
+
+  // Mostrar splash con animación
+  splash.classList.remove('bday-hidden');
+  splash.classList.add('bday-show');
+  document.body.style.overflow = 'hidden';
+
+  // Botón entrar
+  document.getElementById('bdayEnter')?.addEventListener('click', closeBirthdaySplash);
+}
+
+function closeBirthdaySplash() {
+  const splash = document.getElementById('bday-splash');
+  if (!splash) return;
+  splash.classList.add('bday-exit');
+  document.body.style.overflow = '';
+  setTimeout(() => {
+    splash.style.display = 'none';
+  }, 900);
+}
+
 // ===================== INIT =====================
 async function init() {
   loadCart();
-  const freshData = await fetchProducts(true);
+
+  // 1. Fetch mensaje y productos en paralelo
+  const [msgCsv, freshData] = await Promise.all([
+    fetchMensaje(),
+    fetchProducts(true)
+  ]);
+
+  // 2. Renderizar productos
   if (freshData && freshData.length) {
     products = freshData;
     renderProducts();
@@ -565,10 +697,21 @@ async function init() {
       productsContainer.innerHTML = '<div style="text-align:center;padding:60px 24px;color:var(--gold);font-family:\'Syne\',sans-serif;font-size:13px;letter-spacing:.14em">No se pudieron cargar los productos. Por favor, recarga la página.</div>';
     }
   }
+
+  // 3. Ocultar loader
   showLoader(false);
   hideSkeleton();
   initialLoad = false;
 
+  // 4. Mostrar splash de cumpleaños
+  const msgData = parseMensaje(msgCsv);
+  // Muestra siempre salvo que activo sea explícitamente "no"
+  const splashDesactivado = msgData && msgData.activo && msgData.activo.toLowerCase() === 'no';
+  if (!splashDesactivado) {
+    setTimeout(() => showBirthdaySplash(msgData), 200);
+  }
+
+  // 5. Sincronización periódica
   setInterval(async () => {
     if (document.visibilityState === 'visible') {
       const newData = await fetchProducts(true);

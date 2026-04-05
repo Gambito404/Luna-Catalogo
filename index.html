@@ -371,6 +371,59 @@
   </div>
 </div>
 
+<!-- BIRTHDAY SPLASH -->
+<div id="bday-splash" class="bday-hidden">
+
+  <!-- Partículas de fondo -->
+  <div class="bday-particles" id="bdayParticles"></div>
+
+  <!-- Estrellas flotantes decorativas -->
+  <div class="bday-stars">
+    <span class="bstar bs-1">✦</span>
+    <span class="bstar bs-2">✦</span>
+    <span class="bstar bs-3">✦</span>
+    <span class="bstar bs-4">✦</span>
+    <span class="bstar bs-5">✦</span>
+    <span class="bstar bs-6">✦</span>
+  </div>
+
+  <!-- Contenido central -->
+  <div class="bday-inner">
+
+    <!-- Logo con anillos -->
+    <div class="bday-logo-wrap">
+      <div class="bday-ring bday-ring-1"></div>
+      <div class="bday-ring bday-ring-2"></div>
+      <img src="img/logo.png" alt="LUNA" class="bday-logo">
+    </div>
+
+    <!-- Texto del mensaje (cargado desde sheets) -->
+    <div class="bday-msg-wrap">
+      <p class="bday-from" id="bdayFrom">✦ Un regalo especial ✦</p>
+      <h1 class="bday-title" id="bdayTitle">Feliz Cumpleaños</h1>
+      <p class="bday-name" id="bdayName">❤</p>
+      <div class="bday-divider">
+        <span class="bday-div-line"></span>
+        <span class="bday-div-star">✦</span>
+        <span class="bday-div-line"></span>
+      </div>
+      <p class="bday-text" id="bdayText">Con todo el amor del mundo, este regalo es para ti.</p>
+    </div>
+
+    <!-- Botón entrar -->
+    <button class="bday-btn" id="bdayEnter">
+      <span>Descubrir mi regalo</span>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <line x1="5" y1="12" x2="19" y2="12"/>
+        <polyline points="12 5 19 12 12 19"/>
+      </svg>
+    </button>
+
+    <p class="bday-hint">Toca para abrir tu colección</p>
+  </div>
+
+</div>
+
 <script src="script.js" defer></script>
 <script>
   // Custom cursor
