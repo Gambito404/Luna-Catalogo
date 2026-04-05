@@ -485,7 +485,7 @@ function sendOrderToWhatsApp() {
     message += `- ${item.quantity}x ${item.name} (${item.priceFormatted}) → $${subtotal.toFixed(2)}\n`;
   });
   message += `\n*Total: $${total.toFixed(2)}*`;
-  const phone = '59177424842';
+  const phone = '59169485374';
   window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
 }
 
