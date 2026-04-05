@@ -121,6 +121,9 @@ function parseCSV(csvText) {
   if (rows.length < 2) return [];
 
   const headers = rows[0].map(h => h.toLowerCase().trim());
+  const imgCol = headers.indexOf('imagen');
+  const idCol  = headers.indexOf('id');
+
   const cardStyles = [
     { bg: 'radial-gradient(ellipse at center,#1a1530 0%,#0d0e18 100%)', gc: 'rgba(180,140,220,.2)' },
     { bg: 'radial-gradient(ellipse at center,#151f1a 0%,#0c0f12 100%)', gc: 'rgba(100,200,140,.16)' },
@@ -130,49 +133,84 @@ function parseCSV(csvText) {
     { bg: 'radial-gradient(ellipse at center,#101820 0%,#05080a 100%)', gc: 'rgba(130,180,220,.18)' }
   ];
 
-  return rows.slice(1).map((row, idx) => {
+  // Helper: convierte una URL de Drive en thumbnail
+  function driveThumb(url) {
+    if (!url) return '';
+    url = url.trim();
+    if (url.includes('drive.google.com') && url.includes('/d/')) {
+      const m = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+      return m ? `https://drive.google.com/thumbnail?id=${m[1]}&sz=w800` : url;
+    }
+    return url;
+  }
+
+  const products = [];
+  let styleIdx = 0;
+
+  rows.slice(1).forEach(row => {
+    const rawId  = idCol  >= 0 ? (row[idCol]  || '').trim() : '';
+    const rawImg = imgCol >= 0 ? (row[imgCol] || '').trim() : '';
+
+    // Fila de imagen extra — sin id, solo tiene imagen
+    if (!rawId && rawImg && products.length > 0) {
+      const last = products[products.length - 1];
+      const extra = driveThumb(rawImg);
+      if (extra && !last.imgs.includes(extra)) last.imgs.push(extra);
+      last.img = last.imgs[0] || '';
+      return;
+    }
+
+    // Fila de producto normal (tiene id)
+    if (!rawId) return;
+
     const product = {
       id: null, name: '', desc: '', long: '',
-      price: 0, oldPrice: null, type: '', img: '',
+      price: 0, oldPrice: null, type: '', img: '', imgs: [],
       estado: 'inactivo',
-      bg: cardStyles[idx % cardStyles.length].bg,
-      gc: cardStyles[idx % cardStyles.length].gc,
+      bg: cardStyles[styleIdx % cardStyles.length].bg,
+      gc: cardStyles[styleIdx % cardStyles.length].gc,
       beneficios: []
     };
 
     headers.forEach((header, col) => {
       let value = row[col] || '';
       switch (header) {
-        case 'nombre': product.name = value; break;
-        case 'id': product.id = parseInt(value); break;
-        case 'estado': product.estado = value.toLowerCase().trim(); break;
+        case 'nombre':   product.name  = value; break;
+        case 'id':       product.id    = parseInt(value); break;
+        case 'estado':   product.estado = value.toLowerCase().trim(); break;
         case 'descripcion': product.desc = value; product.long = value; break;
         case 'precio':
           product.price = parseFloat(value.replace(/[^0-9.]/g, '')) || 0;
           break;
-        case 'descuento':
-          let disc = parseFloat(value.replace(/[^0-9.]/g, '')) || 0;
+        case 'descuento': {
+          const disc = parseFloat(value.replace(/[^0-9.]/g, '')) || 0;
           if (disc > 0) { product.oldPrice = product.price; product.price -= disc; }
           break;
+        }
         case 'tipo': product.type = value; break;
-        case 'imagen':
-          if (value.includes('drive.google.com') && value.includes('/d/')) {
-            const match = value.match(/\/d\/([a-zA-Z0-9_-]+)/);
-            product.img = match ? `https://drive.google.com/thumbnail?id=${match[1]}&sz=w800` : value;
-          } else {
-            product.img = value;
-          }
+        case 'imagen': {
+          // También soporta varias en la misma celda separadas por |
+          const urls = value.split('|').map(u => driveThumb(u)).filter(u => u);
+          product.imgs = urls;
+          product.img  = urls[0] || '';
           break;
+        }
         case 'beneficios':
           product.beneficios = value.split('|').map(s => s.trim()).filter(s => s);
           break;
       }
     });
 
-    product.priceFormatted = '$' + product.price.toFixed(2);
+    product.priceFormatted    = '$' + product.price.toFixed(2);
     product.oldPriceFormatted = product.oldPrice ? '$' + product.oldPrice.toFixed(2) : null;
-    return product.estado === 'activo' && product.id ? product : null;
-  }).filter(p => p !== null);
+
+    if (product.estado === 'activo' && product.id) {
+      products.push(product);
+      styleIdx++;
+    }
+  });
+
+  return products;
 }
 
 // ===================== RENDER =====================
@@ -214,12 +252,39 @@ function renderProducts() {
 
 function createProductCardHTML(p) {
   const badge = p.badge ? `<span class="pb">${p.badge}</span>` : '';
+  const imgs = p.imgs && p.imgs.length ? p.imgs : (p.img ? [p.img] : []);
+  const hasMultiple = imgs.length > 1;
+
+  const slides = imgs.map((src, i) => `
+    <div class="pi-slide ${i===0?'active':''}" data-idx="${i}">
+      <img class="pii" src="${src}" alt="${p.name}" loading="lazy">
+    </div>`).join('');
+
+  const dots = hasMultiple ? `
+    <div class="pi-dots" onclick="event.stopPropagation()">
+      ${imgs.map((_,i) => `<button class="pi-dot ${i===0?'active':''}" onclick="cardSlide(event,${p.id},${i})" aria-label="Imagen ${i+1}"></button>`).join('')}
+    </div>` : '';
+
+  const arrows = hasMultiple ? `
+    <button class="pi-arrow pi-prev" onclick="cardSlide(event,${p.id},-1,true)" aria-label="Anterior">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <button class="pi-arrow pi-next" onclick="cardSlide(event,${p.id},1,true)" aria-label="Siguiente">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+    </button>` : '';
+
   return `
     <div class="pc rv" id="p-${p.id}" onclick="openModal(${p.id})">
-      <div class="pi" style="background:${p.bg}">
-        <div class="pig" style="--gc:${p.gc}"></div>
-        <img class="pii" src="${p.img}" alt="${p.name}" loading="lazy">
-        ${badge}
+      <div class="pi-wrap" style="background:${p.bg}">
+        <div class="pi-track-outer">
+          <div class="pig" style="--gc:${p.gc}"></div>
+          <div class="pi-track" id="pt-${p.id}">
+            ${slides}
+          </div>
+          ${dots}
+          ${badge}
+        </div>
+        ${arrows}
       </div>
       <div class="pin">
         <div class="ptype">${p.type}</div>
@@ -234,6 +299,28 @@ function createProductCardHTML(p) {
         </div>
       </div>
     </div>`;
+}
+
+// Card carousel navigation
+function cardSlide(e, productId, indexOrDelta, isDelta = false) {
+  e.stopPropagation();
+  const track = document.getElementById('pt-' + productId);
+  if (!track) return;
+  const slides = track.querySelectorAll('.pi-slide');
+  if (slides.length < 2) return;
+  const card = document.getElementById('p-' + productId);
+  const dots = card ? card.querySelectorAll('.pi-dot') : [];
+  let current = Array.from(slides).findIndex(s => s.classList.contains('active'));
+  if (current === -1) current = 0;
+  let next = isDelta ? current + indexOrDelta : indexOrDelta;
+  if (next < 0) next = slides.length - 1;
+  if (next >= slides.length) next = 0;
+  slides[current].classList.remove('active');
+  slides[next].classList.add('active');
+  if (dots.length) {
+    dots[current]?.classList.remove('active');
+    dots[next]?.classList.add('active');
+  }
 }
 
 function silentUpdate(newProducts) {
@@ -398,7 +485,7 @@ function sendOrderToWhatsApp() {
     message += `- ${item.quantity}x ${item.name} (${item.priceFormatted}) → $${subtotal.toFixed(2)}\n`;
   });
   message += `\n*Total: $${total.toFixed(2)}*`;
-  const phone = '59169485374';
+  const phone = '59177424842';
   window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
 }
 
@@ -409,11 +496,33 @@ function openModal(productId) {
   const modalContent = document.getElementById('mw');
   let selectedQuantity = 1;
 
-  modalContent.innerHTML = `
-    <div class="mt">
-      <div class="mv" style="background:${product.bg}">
-        <img class="mvi" src="${product.img}" alt="${product.name}" loading="lazy">
+  const imgs = product.imgs && product.imgs.length ? product.imgs : (product.img ? [product.img] : ['']);
+  let currentImg = 0;
+
+  const buildGallery = () => `
+    <div class="mg-wrap" style="background:${product.bg}">
+      <div class="mg-main" id="mg-main">
+        <img class="mg-img" id="mg-img" src="${imgs[currentImg]}" alt="${product.name}">
+        ${imgs.length > 1 ? `
+        <button class="mg-arrow mg-prev" id="mg-prev">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <button class="mg-arrow mg-next" id="mg-next">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+        <div class="mg-counter"><span id="mg-cur">1</span> / ${imgs.length}</div>` : ''}
       </div>
+      ${imgs.length > 1 ? `
+      <div class="mg-thumbs" id="mg-thumbs">
+        ${imgs.map((src,i) => `<button class="mg-thumb ${i===0?'active':''}" data-i="${i}" onclick="mgGoTo(${i})">
+          <img src="${src}" alt="Vista ${i+1}" loading="lazy">
+        </button>`).join('')}
+      </div>` : ''}
+    </div>`;
+
+  modalContent.innerHTML = `
+    <div class="mt mt-gallery">
+      ${buildGallery()}
       <div class="mb">
         <div class="mtype">${product.type}</div>
         <h2 class="mname">${product.name}</h2>
@@ -441,6 +550,32 @@ function openModal(productId) {
         <ul>${product.beneficios.map(b => `<li>${b}</li>`).join('')}</ul>
       </div>
     </div>` : ''}`;
+
+  // Gallery controls
+  function mgGoTo(i) {
+    const imgs2 = product.imgs && product.imgs.length ? product.imgs : [product.img];
+    currentImg = (i + imgs2.length) % imgs2.length;
+    const el = document.getElementById('mg-img');
+    const cur = document.getElementById('mg-cur');
+    const thumbs = document.querySelectorAll('.mg-thumb');
+    if (el) { el.classList.add('mg-fade'); setTimeout(()=>{ el.src = imgs2[currentImg]; el.classList.remove('mg-fade'); },180); }
+    if (cur) cur.textContent = currentImg + 1;
+    thumbs.forEach((t,ti) => t.classList.toggle('active', ti === currentImg));
+  }
+  document.getElementById('mg-prev')?.addEventListener('click', () => mgGoTo(currentImg - 1));
+  document.getElementById('mg-next')?.addEventListener('click', () => mgGoTo(currentImg + 1));
+  window.mgGoTo = mgGoTo;
+
+  // Swipe táctil en la imagen principal
+  const mgMain = document.getElementById('mg-main');
+  if (mgMain) {
+    let tx = 0;
+    mgMain.addEventListener('touchstart', e => { tx = e.touches[0].clientX; }, {passive:true});
+    mgMain.addEventListener('touchend', e => {
+      const dx = e.changedTouches[0].clientX - tx;
+      if (Math.abs(dx) > 40) mgGoTo(currentImg + (dx < 0 ? 1 : -1));
+    }, {passive:true});
+  }
 
   const qtyMinus = document.getElementById('qty-minus');
   const qtyPlus = document.getElementById('qty-plus');

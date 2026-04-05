@@ -561,38 +561,7 @@ nav.scrolled{
 .pc:hover::before{opacity:1;}
 
 /* Top image zone */
-.pi{
-  height:clamp(200px,24vw,280px);
-  display:flex;align-items:center;justify-content:center;
-  position:relative;overflow:hidden;
-  border-radius:var(--radius) var(--radius) 0 0;
-}
-/* Shimmer sweep */
-.pi::after{
-  content:'';position:absolute;inset:0;
-  background:linear-gradient(115deg,transparent 40%,rgba(255,255,255,.07) 50%,transparent 60%);
-  transform:translateX(-100%);
-  transition:transform .7s var(--ease);
-  z-index:2;
-}
-.pc:hover .pi::after{transform:translateX(100%);}
-
-.pig{
-  position:absolute;
-  width:220px;height:220px;border-radius:50%;
-  background:radial-gradient(circle,var(--gc),transparent 70%);
-  filter:blur(50px);opacity:.3;
-  transition:opacity .6s,transform .7s var(--ease);
-}
-.pc:hover .pig{opacity:.8;transform:scale(1.5);}
-
-.pii{
-  position:relative;z-index:1;
-  max-height:80%;width:auto;
-  filter:drop-shadow(0 14px 32px rgba(0,0,0,.55));
-  transition:transform .6s var(--ease);
-}
-.pc:hover .pii{transform:scale(1.08) translateY(-10px);}
+/* .pi-wrap/.pi-track/.pii — see CARD CAROUSEL section below */
 
 /* Badge */
 .pb{
@@ -1206,4 +1175,199 @@ footer::before{
   letter-spacing: .2em;
   text-transform: uppercase;
   color: rgba(200,168,75,.3);
+}
+
+/* ════════════════════════════════════════
+   CARD CAROUSEL
+════════════════════════════════════════ */
+/* ── CARD IMAGE AREA ── */
+.pi-wrap {
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px 12px 0 0;
+  /* Image + controls container */
+}
+
+/* Image zone — clip here */
+.pi-track-outer {
+  height: clamp(240px, 30vw, 320px);
+  position: relative;
+  overflow: hidden;
+}
+
+.pig {
+  position: absolute;
+  width: 220px; height: 220px; border-radius: 50%;
+  background: radial-gradient(circle, var(--gc), transparent 70%);
+  filter: blur(50px); opacity: .35;
+  top: 50%; left: 50%; transform: translate(-50%,-50%);
+  z-index: 0;
+  transition: opacity .5s, transform .6s var(--ease);
+}
+.pc:hover .pig { opacity: .75; transform: translate(-50%,-50%) scale(1.4); }
+
+.pi-track {
+  position: absolute; inset: 0;
+  z-index: 1;
+}
+.pi-slide {
+  position: absolute; inset: 0;
+  opacity: 0;
+  transition: opacity .35s var(--ease);
+  display: flex; align-items: center; justify-content: center;
+}
+.pi-slide.active { opacity: 1; }
+
+.pii {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  object-position: center;
+  transition: transform .6s var(--ease);
+  display: block;
+}
+.pc:hover .pii { transform: scale(1.05); }
+
+/* ── ARROWS — always visible on cards with multiple images ── */
+.pi-arrow {
+  position: absolute;
+  /* Center vertically on the image track height */
+  top: calc(clamp(240px, 30vw, 320px) / 2);
+  transform: translateY(-50%);
+  z-index: 10;
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  border: 1px solid rgba(200,168,75,.35);
+  background: rgba(6,5,10,.88);
+  color: var(--gold);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 16px rgba(0,0,0,.6);
+  transition: background .2s, border-color .2s, transform .2s;
+}
+.pi-arrow:hover,
+.pi-arrow:active {
+  background: rgba(200,168,75,.22);
+  border-color: var(--gold);
+  transform: translateY(-50%) scale(1.1);
+}
+.pi-prev { left: 10px; }
+.pi-next { right: 10px; }
+
+/* ── DOTS ── */
+.pi-dots {
+  position: absolute;
+  bottom: 8px; left: 50%;
+  transform: translateX(-50%);
+  display: flex; gap: 5px;
+  z-index: 10;
+  padding: 4px 8px;
+  background: rgba(6,5,10,.45);
+  border-radius: 20px;
+}
+.pi-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: rgba(255,255,255,.35);
+  border: none; cursor: pointer; padding: 0;
+  transition: background .2s, transform .2s;
+}
+.pi-dot.active {
+  background: var(--gold);
+  transform: scale(1.35);
+}
+
+/* ════════════════════════════════════════
+   MODAL GALLERY
+════════════════════════════════════════ */
+.mt-gallery { display: block !important; }
+
+.mg-wrap {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  border-radius: 0;
+}
+
+.mg-main {
+  position: relative;
+  width: 100%;
+  height: clamp(260px, 45vw, 420px);
+  overflow: hidden;
+  background: rgba(0,0,0,.2);
+  cursor: zoom-in;
+}
+.mg-main:fullscreen { height: 100vh; cursor: zoom-out; }
+
+.mg-img {
+  width: 100%; height: 100%;
+  object-fit: contain;
+  object-position: center;
+  transition: transform .4s var(--ease), opacity .18s;
+  transform-origin: center;
+}
+.mg-img:hover { transform: scale(1.08); }
+.mg-fade { opacity: 0 !important; }
+
+/* Gallery arrows */
+.mg-arrow {
+  position: absolute; top: 50%;
+  transform: translateY(-50%);
+  background: rgba(6,5,10,.75);
+  border: 1px solid rgba(200,168,75,.25);
+  color: var(--gold);
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; z-index: 3;
+  transition: all .25s;
+}
+.mg-arrow:hover { background: rgba(200,168,75,.2); border-color: var(--gold); transform: translateY(-50%) scale(1.1); }
+.mg-prev { left: 12px; }
+.mg-next { right: 12px; }
+
+/* Counter */
+.mg-counter {
+  position: absolute; bottom: 10px; right: 12px;
+  background: rgba(6,5,10,.7);
+  border: 1px solid rgba(200,168,75,.15);
+  color: var(--gold);
+  font-family: 'Syne', sans-serif; font-size: 10px;
+  font-weight: 600; letter-spacing: .12em;
+  padding: 4px 10px; border-radius: 20px;
+  z-index: 3;
+}
+
+/* Thumbnails strip */
+.mg-thumbs {
+  display: flex; gap: 6px;
+  padding: 10px 14px;
+  overflow-x: auto;
+  background: rgba(0,0,0,.3);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(200,168,75,.2) transparent;
+}
+.mg-thumbs::-webkit-scrollbar { height: 3px; }
+.mg-thumbs::-webkit-scrollbar-thumb { background: rgba(200,168,75,.2); border-radius: 2px; }
+
+.mg-thumb {
+  flex-shrink: 0;
+  width: 60px; height: 60px;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 2px solid transparent;
+  background: none; cursor: pointer;
+  transition: border-color .2s, transform .2s;
+  padding: 0;
+}
+.mg-thumb.active { border-color: var(--gold); transform: scale(1.05); }
+.mg-thumb:hover { border-color: rgba(200,168,75,.5); }
+.mg-thumb img { width: 100%; height: 100%; object-fit: cover; }
+
+/* Modal layout adjustment for gallery */
+@media(min-width:640px) {
+  .mt-gallery { display: grid !important; grid-template-columns: 1.1fr 1fr; }
+  .mg-wrap { border-radius: 0; }
+  .mg-main { height: 100%; min-height: 340px; }
+  .mg-thumbs { flex-direction: column; width: 80px; padding: 10px 8px; height: 100%; overflow-y: auto; overflow-x: hidden; }
+  .mg-thumb { width: 64px; height: 64px; }
+  .mg-wrap { flex-direction: row; }
 }
